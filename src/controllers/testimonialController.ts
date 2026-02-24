@@ -3,6 +3,8 @@ import prisma from "../config/prisma";
 import fs from "fs";
 import path from "path";
 
+
+
 // ============================
 // CREATE TESTIMONIAL
 // ============================
@@ -145,15 +147,30 @@ export const deleteTestimonial = async (req: Request, res: Response) => {
       return res.status(404).json({ message: "Testimonial not found" });
     }
 
-    // Delete image file
+    // 1️⃣ Delete image file
     const filePath = path.join("uploads", testimonial.imageUrl);
     if (fs.existsSync(filePath)) {
       fs.unlinkSync(filePath);
     }
 
+    // 2️⃣ Delete testimonial from DB
     await prisma.testimonial.delete({
       where: { id },
     });
+
+    // 3️⃣ 🔥 Recalculate display order (ADD HERE)
+    const remaining = await prisma.testimonial.findMany({
+      orderBy: { displayorder: "asc" },
+    });
+
+    await Promise.all(
+      remaining.map((item, index) =>
+        prisma.testimonial.update({
+          where: { id: item.id },
+          data: { displayorder: index + 1 },
+        })
+      )
+    );
 
     res.status(200).json({ message: "Testimonial deleted successfully" });
   } catch (error) {
@@ -161,6 +178,9 @@ export const deleteTestimonial = async (req: Request, res: Response) => {
     res.status(500).json({ message: "Error deleting testimonial" });
   }
 };
+
+
+
 
 // ============================
 // REORDER TESTIMONIALS
@@ -173,14 +193,14 @@ export const reorderTestimonials = async (req: Request, res: Response) => {
       return res.status(400).json({ message: "Invalid reorder data" });
     }
 
-    const updatePromises = items.map((item: any) =>
-      prisma.testimonial.update({
-        where: { id: item.id },
-        data: { displayorder: item.displayorder },
-      })
+    await Promise.all(
+      items.map((item: any, index: number) =>
+        prisma.testimonial.update({
+          where: { id: item.id },
+          data: { displayorder: index + 1 },
+        })
+      )
     );
-
-    await Promise.all(updatePromises);
 
     res.status(200).json({ message: "Reordered successfully" });
   } catch (error) {

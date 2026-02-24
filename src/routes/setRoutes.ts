@@ -39,8 +39,10 @@ const upload = multer({ storage });
 router.post("/", upload.single("mainImage"), createSet);
 router.get("/", getAllSets);
 
+
 router.get("/:id", getSingleSet);
 router.get("/:id/gallery", getSetGallery);
+
 
 router.put("/:id", upload.single("mainImage"), updateSet);
 router.delete("/:id", deleteSet);

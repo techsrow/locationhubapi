@@ -8,7 +8,7 @@ import slugify from "slugify";
 
 export const createSetup = async (req: Request, res: Response) => {
   try {
-    const { title, content } = req.body;
+    const { title, content, pageUrl } = req.body;
 
     const files = req.files as {
       mainImage?: Express.Multer.File[];
@@ -40,6 +40,7 @@ export const createSetup = async (req: Request, res: Response) => {
     const setup = await prisma.setup.create({
       data: {
         title,
+        pageUrl,
         slug,
         content,
         mainImage: `/uploads/${files.mainImage[0].filename}`,
@@ -115,7 +116,7 @@ export const getSetupBySlug = async (req: Request, res: Response) => {
 export const updateSetup = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    const { title, content } = req.body;
+    const { title, content,pageUrl } = req.body;
 
     const existing = await prisma.setup.findUnique({
       where: { id },
@@ -169,6 +170,7 @@ export const updateSetup = async (req: Request, res: Response) => {
 
     if (title) {
       updateData.title = title;
+      updateData.pageUrl = pageUrl;
       updateData.slug = slugify(title, { lower: true, strict: true });
     }
 

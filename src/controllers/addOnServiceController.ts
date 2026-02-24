@@ -8,14 +8,26 @@ import path from "path";
 ===================================================== */
 export const createAddOnService = async (req: Request, res: Response) => {
   try {
-    const { title } = req.body;
+    const { title, pageUrl } = req.body;
     const file = req.file;
 
-    if (!title || !file) {
-      return res.status(400).json({ message: "Title and image are required" });
+    if (!title || !file || !pageUrl) {
+      return res.status(400).json({
+        message: "Title, Page URL and image are required",
+      });
     }
 
-    // Get last display order
+    // Check if pageUrl already exists
+    const existing = await prisma.addOnService.findUnique({
+      where: { pageUrl },
+    });
+
+    if (existing) {
+      return res.status(400).json({
+        message: "Page URL already exists. Use a different one.",
+      });
+    }
+
     const lastItem = await prisma.addOnService.findFirst({
       orderBy: { displayorder: "desc" },
     });
@@ -25,18 +37,21 @@ export const createAddOnService = async (req: Request, res: Response) => {
     const newItem = await prisma.addOnService.create({
       data: {
         title,
+        pageUrl,
         imageUrl: `/uploads/${file.filename}`,
         displayorder: newDisplayOrder,
       },
     });
 
     res.status(201).json(newItem);
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: "Error creating Add On Service" });
+
+  } catch (error: any) {
+    console.error("CREATE ERROR:", error);
+    res.status(500).json({
+     message: error?.message || error,
+    });
   }
 };
-
 /* =====================================================
    GET ALL (Sorted)
 ===================================================== */
@@ -82,6 +97,7 @@ export const updateAddOnService = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
     const { title } = req.body;
+     const { pageUrl } = req.body;
     const file = req.file;
 
     const existingItem = await prisma.addOnService.findUnique({
@@ -109,6 +125,7 @@ export const updateAddOnService = async (req: Request, res: Response) => {
       where: { id },
       data: {
         title: title ?? existingItem.title,
+        pageUrl: pageUrl ?? existingItem.pageUrl,
         imageUrl: updatedImageUrl,
       },
     });

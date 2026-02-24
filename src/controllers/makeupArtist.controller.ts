@@ -28,7 +28,7 @@ export const uploadMakeupArtist = async (req: Request, res: Response) => {
     for (const file of files) {
       const newItem = await prisma.makeupArtist.create({
         data: {
-          image: `/uploads/makeupArtist/${file.filename}`,
+          image: `/uploads/${file.filename}`,
           displayOrder: nextOrder++,
         },
       });
@@ -118,7 +118,7 @@ export const updateMakeupArtist = async (req: Request, res: Response) => {
         fs.unlinkSync(oldImagePath);
       }
 
-      updatedImage = `/uploads/makeupArtist/${file.filename}`;
+      updatedImage = `/uploads/${file.filename}`;
     }
 
     const updated = await prisma.makeupArtist.update({

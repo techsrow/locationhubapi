@@ -13,48 +13,37 @@ import upload from "../middlewares/upload";
 
 const router = express.Router();
 
-/**
- * ===============================
- * 🔹 Public Routes
- * ===============================
- */
+/* =================================
+   🔓 Public Routes
+================================= */
+
 router.get("/", getAllMakeupArtist);
 router.get("/:id", getMakeupArtistById);
 
-/**
- * ===============================
- * 🔹 Protected Routes
- * ===============================
- */
+/* =================================
+   🔐 Protected Routes
+================================= */
 
-// Upload multiple
+// 🔥 IMPORTANT: Keep /reorder ABOVE /:id
+router.put("/reorder", protect, reorderMakeupArtist);
+
+// Upload multiple images
 router.post(
-  "/upload",
+  "/",
   protect,
   upload.array("images", 20),
   uploadMakeupArtist
 );
 
-// Update single
+// Update single image
 router.put(
-  "/update/:id",
+  "/:id",
   protect,
   upload.single("image"),
   updateMakeupArtist
 );
 
 // Delete
-router.delete(
-  "/delete/:id",
-  protect,
-  deleteMakeupArtist
-);
-
-// Reorder
-router.put(
-  "/reorder",
-  protect,
-  reorderMakeupArtist
-);
+router.delete("/:id", protect, deleteMakeupArtist);
 
 export default router;

@@ -11,7 +11,9 @@ const router = express.Router();
 
 router.post("/", upload.single("image"), createTestimonial);
 router.get("/", getTestimonials);
+router.put("/reorder", reorderTestimonials); // MUST BE ABOVE
 router.delete("/:id", deleteTestimonial);
-router.put("/reorder", reorderTestimonials);
+
+
 
 export default router;

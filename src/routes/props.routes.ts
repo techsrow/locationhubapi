@@ -13,8 +13,11 @@ const router = express.Router();
 
 router.post("/", protect, upload.single("image"), createProps);
 router.get("/", getAllProps);
+
+router.put("/reorder", protect, reorderProps);   // ✅ ABOVE :id
+
 router.put("/:id", protect, upload.single("image"), updateProps);
 router.delete("/:id", protect, deleteProps);
-router.put("/reorder", protect, reorderProps);
+
 
 export default router;

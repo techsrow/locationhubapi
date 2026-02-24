@@ -3,7 +3,7 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
+  provider = "mysql"
   url      = env("DATABASE_URL")
 }
 
@@ -47,7 +47,7 @@ model Set {
   mainImage   String
   content     String        @db.Text   // raw HTML from CKEditor
   createdAt   DateTime      @default(now())
-
+  pageUrl     String        @unique        // ✅ ADD THIS
   gallery     SetGallery[]
 }
 
@@ -65,6 +65,7 @@ model AddOnService {
   id           String   @id @default(uuid())
   title        String
   imageUrl     String
+  pageUrl     String        @unique  
   displayorder Int
   createdAt    DateTime @default(now())
 }
@@ -85,7 +86,7 @@ model Setup {
   content      String
   displayOrder Int
   createdAt    DateTime @default(now())
-
+pageUrl     String        @unique        // ✅ ADD THIS
   gallery      SetupGallery[]
 }
 

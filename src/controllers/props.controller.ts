@@ -159,7 +159,7 @@ export const deleteProps = async (req: Request, res: Response) => {
     }
 
     // Delete image file
-    const filePath = path.join("uploads", existing.image);
+    const filePath = path.join(process.cwd(), "uploads", existing.image);
 
     if (fs.existsSync(filePath)) {
       fs.unlinkSync(filePath);
@@ -169,14 +169,30 @@ export const deleteProps = async (req: Request, res: Response) => {
       where: { id },
     });
 
-    return res.status(200).json({
-      message: "Props deleted successfully",
+    // 🔥 NORMALIZE ORDER
+    const remaining = await prisma.props.findMany({
+      orderBy: { displayOrder: "asc" },
     });
+
+    const updatePromises = remaining.map((item, index) =>
+      prisma.props.update({
+        where: { id: item.id },
+        data: { displayOrder: index + 1 },
+      })
+    );
+
+    await Promise.all(updatePromises);
+
+    return res.status(200).json({
+      message: "Props deleted & order normalized",
+    });
+
   } catch (error) {
     console.error("Delete Props Error:", error);
     return res.status(500).json({ message: "Internal server error" });
   }
 };
+
 
 /**
  * ================================
@@ -191,20 +207,22 @@ export const reorderProps = async (req: Request, res: Response) => {
       return res.status(400).json({ message: "Invalid reorder data" });
     }
 
-    const updatePromises = items.map((item: any, index: number) =>
-      prisma.props.update({
-        where: { id: item.id },
-        data: { displayOrder: index + 1 },
-      })
+    await prisma.$transaction(
+      items.map((item: any, index: number) =>
+        prisma.props.update({
+          where: { id: item.id },
+          data: { displayOrder: index + 1 },
+        })
+      )
     );
-
-    await Promise.all(updatePromises);
 
     return res.status(200).json({
       message: "Props reordered successfully",
     });
+
   } catch (error) {
     console.error("Reorder Props Error:", error);
     return res.status(500).json({ message: "Internal server error" });
   }
 };
+
