@@ -1,24 +1,23 @@
 import express from "express";
 import {
   lockBooking,
-  getBooking,
-  createPayment,
-  webhook,
-  getSummary
+   getBooking,
+   updateCustomerDetails,
+   createPayment,
+    webhook,
+  // getSummary
 } from "../controllers/booking.controller";
 
 const router = express.Router();
 
 router.post("/lock", lockBooking);
-router.get("/:bookingId", getBooking);
-router.post("/payment/:bookingId", createPayment);
-router.get("/summary/:bookingId", getSummary);
 
-// ⚠ Webhook must use express.raw
-router.post(
-  "/webhook",
-  express.raw({ type: "application/json" }),
-  webhook
-);
+router.get("/:bookingId", getBooking);
+router.put("/:bookingId/customer", updateCustomerDetails);
+router.post("/:bookingId/pay", createPayment);
+router.post("/webhook", webhook);
+
+
+
 
 export default router;

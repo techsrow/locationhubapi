@@ -58,3 +58,18 @@ export const createSlot = async (data: {
     },
   });
 };
+
+export const getProductById = async (id: string) => {
+  const product = await prisma.product.findUnique({
+    where: { id },
+    include: {
+      slots: true,
+    },
+  });
+
+  if (!product) {
+    throw new Error("Product not found");
+  }
+
+  return product;
+};

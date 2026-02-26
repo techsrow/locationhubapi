@@ -39,7 +39,10 @@ app.use("/api/set", setRoutes);
 app.use("/api/bookings", bookingRoutes);
 app.use("/api/products", productRoutes);
 
-
+app.use(
+  "/api/bookings/webhook",
+  express.raw({ type: "application/json" })
+);
 
 
 

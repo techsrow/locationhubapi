@@ -8,118 +8,98 @@ import * as bookingService from "../services/booking.service";
 
 export const lockBooking = async (req: Request, res: Response) => {
   try {
-    const {
-      productId,
-      slotIds,
-      bookingDate,
-      customerName,
-      phone,
-      email
-    } = req.body;
+    const { productId, bookingDate, slotIds } = req.body;
 
-    if (
-      !productId ||
-      !slotIds ||
-      !bookingDate ||
-      !customerName ||
-      !phone ||
-      !email
-    ) {
+    if (!productId || !bookingDate || !slotIds?.length) {
       return res.status(400).json({
         success: false,
-        message: "Missing required fields"
-      });
-    }
-
-    if (!Array.isArray(slotIds) || slotIds.length === 0) {
-      return res.status(400).json({
-        success: false,
-        message: "slotIds must be a non-empty array"
+        message: "Missing required fields",
       });
     }
 
     const booking = await bookingService.lockBooking({
       productId,
-      slotIds,
       bookingDate,
-      customerName,
-      phone,
-      email
+      slotIds,
     });
 
     return res.status(201).json({
       success: true,
-      booking
+      bookingId: booking.bookingId,
     });
-
   } catch (err: any) {
+    console.error("LOCK ERROR:", err);
     return res.status(400).json({
       success: false,
-      message: err.message
+      message: err.message,
     });
   }
 };
 
 
-/* =========================
-   STEP 2 — GET BOOKING
-========================= */
-
 export const getBooking = async (req: Request, res: Response) => {
   try {
-    const booking = await bookingService.getBookingById(
-      req.params.bookingId
+    const { bookingId } = req.params;
+
+    const booking = await bookingService.getBookingSummary(bookingId);
+
+    return res.json({
+      success: true,
+      booking,
+    });
+  } catch (err: any) {
+    return res.status(404).json({
+      success: false,
+      message: err.message,
+    });
+  }
+};
+
+
+export const updateCustomerDetails = async (req: Request, res: Response) => {
+  try {
+    const { bookingId } = req.params;
+
+    const booking = await bookingService.updateCustomerDetails(
+      bookingId,
+      req.body
     );
 
     return res.json({
       success: true,
-      booking
+      booking,
     });
-
   } catch (err: any) {
-    return res.status(404).json({
+    return res.status(400).json({
       success: false,
-      message: err.message
+      message: err.message,
     });
   }
 };
-
-
-/* =========================
-   STEP 3 — CREATE ADVANCE PAYMENT
-========================= */
 
 export const createPayment = async (req: Request, res: Response) => {
   try {
     const { bookingId } = req.params;
 
-    const razorOrder =
-      await bookingService.createPaymentOrder(bookingId);
+    const order = await bookingService.createPaymentOrder(bookingId);
 
     return res.json({
       success: true,
-      razorOrder
+      order,
     });
-
   } catch (err: any) {
     return res.status(400).json({
       success: false,
-      message: err.message
+      message: err.message,
     });
   }
 };
-
-
-/* =========================
-   RAZORPAY WEBHOOK
-========================= */
 
 export const webhook = async (req: Request, res: Response) => {
   try {
     const secret = process.env.RAZORPAY_WEBHOOK_SECRET as string;
 
-    const signature =
-      req.headers["x-razorpay-signature"] as string;
+    const signature = req.headers["x-razorpay-signature"] as string;
 
     const rawBody = (req as any).rawBody;
 
@@ -135,11 +115,12 @@ export const webhook = async (req: Request, res: Response) => {
     const event = JSON.parse(rawBody.toString());
 
     if (event.event === "payment.captured") {
-      const orderId =
-        event.payload.payment.entity.order_id;
+      const orderId = event.payload.payment.entity.order_id;
+      const paymentId = event.payload.payment.entity.id;
 
       await bookingService.markBookingPaidByWebhook(
-        orderId
+        orderId,
+        paymentId
       );
     }
 
@@ -151,27 +132,3 @@ export const webhook = async (req: Request, res: Response) => {
   }
 };
 
-
-/* =========================
-   SUMMARY API
-========================= */
-
-export const getSummary = async (req: Request, res: Response) => {
-  try {
-    const summary =
-      await bookingService.getBookingSummary(
-        req.params.bookingId
-      );
-
-    return res.json({
-      success: true,
-      data: summary
-    });
-
-  } catch (err: any) {
-    return res.status(404).json({
-      success: false,
-      message: err.message
-    });
-  }
-};

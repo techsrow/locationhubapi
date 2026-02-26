@@ -1,5 +1,6 @@
 import { Request, Response } from "express";
 import * as productService from "../services/product.service";
+import prisma from "../lib/prisma";
 
 /* =========================
    ADD PRODUCT (WITH SLOTS)
@@ -64,6 +65,24 @@ export const addSlot = async (req: Request, res: Response) => {
 
   } catch (err: any) {
     return res.status(400).json({
+      success: false,
+      message: err.message,
+    });
+  }
+};
+
+export const getProduct = async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+
+    const product = await productService.getProductById(id);
+
+    return res.status(200).json({
+      success: true,
+      product,
+    });
+  } catch (err: any) {
+    return res.status(404).json({
       success: false,
       message: err.message,
     });
