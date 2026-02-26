@@ -10,6 +10,10 @@ import setupRoutes from "./routes/setup.routes";
 import propsRoutes from "./routes/props.routes";
 import makeupArtistRoutes from "./routes/makeupArtist.routes";
 import setRoutes from "./routes/setRoutes";
+import bookingRoutes from "./routes/booking.routes";
+import productRoutes from "./routes/product.routes";
+
+
 
 
 
@@ -32,7 +36,8 @@ app.use("/api/setups", setupRoutes);
 app.use("/api/props", propsRoutes);
 app.use("/api/makeup-artist", makeupArtistRoutes);
 app.use("/api/set", setRoutes);
-
+app.use("/api/bookings", bookingRoutes);
+app.use("/api/products", productRoutes);
 
 
 
