@@ -1,10 +1,19 @@
+// import express from "express";
+// import { addProduct, addSlot, getProduct } from "../controllers/product.controller";
+
+// const router = express.Router();
+
+// router.post("/add", addProduct);
+// router.post("/add-slot", addSlot);
+// router.get("/:id", getProduct);
+
+// export default router;
+
 import express from "express";
-import { addProduct, addSlot, getProduct } from "../controllers/product.controller";
+import { getProductBySlug } from "../controllers/product.controller";
 
 const router = express.Router();
 
-router.post("/add", addProduct);
-router.post("/add-slot", addSlot);
-router.get("/:id", getProduct);
+router.get("/:slug", getProductBySlug);
 
 export default router;

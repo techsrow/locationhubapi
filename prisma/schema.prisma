@@ -117,9 +117,14 @@ model MakeupArtist {
 model Product {
   id        String   @id @default(uuid())
   name      String
-  price     Float
+  slug      String   @unique
+  price     Decimal
+  bookingAmount Decimal
+
   slots     Slot[]
   bookings  Booking[]
+
+  createdAt DateTime @default(now())
 }
 
 enum BookingStatus {
@@ -132,60 +137,69 @@ enum BookingStatus {
 
 model Slot {
   id        String   @id @default(uuid())
-  product   Product  @relation(fields: [productId], references: [id])
+
   productId String
+  product   Product  @relation(fields: [productId], references: [id])
+
   label     String
   startTime String
   endTime   String
 
-  bookings  BookingSlot[]   // ADD THIS
+  bookings  BookingSlot[]
+
+  createdAt DateTime @default(now())
 }
 
 model Booking {
-  id                String   @id @default(uuid())
-  bookingId         String   @unique
+  id        String   @id @default(uuid())
 
-  productId         String
-  product           Product  @relation(fields: [productId], references: [id])
+  bookingId String   @unique
 
-  bookingDate       DateTime
+  productId String
+  product   Product  @relation(fields: [productId], references: [id])
 
-  // 👤 Customer Info (Step 2 Form)
-  firstName         String?
-  lastName          String?
-  address           String?
-  city              String?
-  state             String?
-  postcode          String?
-  phone             String?
-  email             String?
-  notes             String?
+  bookingDate DateTime
 
-  // 💰 Pricing
-  totalAmount       Float?
-  bookingAmount     Float?
-  gstAmount         Float?
+  // 👤 CUSTOMER
+  firstName String?
+  lastName  String?
+  address   String?
+  city      String?
+  state     String?
+  postcode  String?
+  phone     String?
+  email     String?
+  notes     String?
 
-  paymentStatus     BookingStatus @default(locked)
+  // 💰 PRICING
+  totalAmount   Decimal?
+  bookingAmount Decimal?
+  gstAmount     Decimal?
 
-  // 💳 Payment
-  razorpayOrderId   String?  @unique
+  paymentStatus BookingStatus @default(locked)
+
+  // 💳 PAYMENT
+  razorpayOrderId   String? @unique
   razorpayPaymentId String?
 
-  // 🔒 Lock system
-  lockExpiresAt     DateTime?
+  // 🔒 SLOT LOCK
+  lockExpiresAt DateTime?
 
-  slots             BookingSlot[]
+  slots BookingSlot[]
 
-  createdAt         DateTime @default(now())
+  createdAt DateTime @default(now())
+
+  @@index([productId, bookingDate])
 }
 
 model BookingSlot {
-  id         String   @id @default(uuid())
+  id String @id @default(uuid())
 
-  booking    Booking  @relation(fields: [bookingId], references: [id])
-  bookingId  String
+  bookingId String
+  booking   Booking @relation(fields: [bookingId], references: [id])
 
-  slot       Slot     @relation(fields: [slotId], references: [id])
-  slotId     String
+  slotId String
+  slot   Slot @relation(fields: [slotId], references: [id])
+
+  @@unique([bookingId, slotId])
 }
