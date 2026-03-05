@@ -132,7 +132,6 @@
 //   }
 // };
 
-
 import prisma from "../lib/prisma";
 import { Request, Response } from "express";
 import { v4 as uuidv4 } from "uuid";
@@ -141,25 +140,41 @@ export const lockBooking = async (req: Request, res: Response) => {
 
   try {
 
-    const { productId, date, slotId } = req.body;
+    const { productId, date, slotIds } = req.body;
+
+    if (!productId || !date || !slotIds || !Array.isArray(slotIds) || slotIds.length === 0) {
+      return res.status(400).json({
+        message: "Invalid booking request"
+      });
+    }
 
     const bookingDate = new Date(date);
 
     const existing = await prisma.bookingSlot.findFirst({
       where: {
-        slotId,
+        slotId: {
+          in: slotIds
+        },
         booking: {
-          bookingDate,
-          paymentStatus: {
-            in: ["locked", "paid"]
-          }
+          bookingDate: bookingDate,
+          OR: [
+            {
+              paymentStatus: "paid"
+            },
+            {
+              paymentStatus: "locked",
+              lockExpiresAt: {
+                gt: new Date()
+              }
+            }
+          ]
         }
       }
     });
 
     if (existing) {
       return res.status(400).json({
-        message: "Slot already booked"
+        message: "One of the selected slots is already booked"
       });
     }
 
@@ -168,23 +183,33 @@ export const lockBooking = async (req: Request, res: Response) => {
     const booking = await prisma.booking.create({
       data: {
         bookingId: uuidv4(),
-        productId,
-        bookingDate,
+        productId: productId,
+        bookingDate: bookingDate,
         paymentStatus: "locked",
         lockExpiresAt: lockExpires,
+
         slots: {
-          create: {
-            slotId
-          }
+          create: slotIds.map((slotId: string) => ({
+            slotId: slotId
+          }))
         }
+
       }
     });
 
-    res.json({
+    return res.json({
+      success: true,
       bookingId: booking.bookingId
     });
 
   } catch (error) {
-    res.status(500).json({ message: "Booking lock failed" });
+
+    console.error("Lock booking error:", error);
+
+    return res.status(500).json({
+      message: "Booking lock failed"
+    });
+
   }
+
 };
