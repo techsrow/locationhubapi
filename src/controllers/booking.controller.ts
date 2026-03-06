@@ -150,22 +150,18 @@ export const lockBooking = async (req: Request, res: Response) => {
 
     const bookingDate = new Date(date);
 
+    /* Check slot conflicts */
+
     const existing = await prisma.bookingSlot.findFirst({
       where: {
-        slotId: {
-          in: slotIds
-        },
+        slotId: { in: slotIds },
         booking: {
           bookingDate: bookingDate,
           OR: [
-            {
-              paymentStatus: "paid"
-            },
+            { paymentStatus: "paid" },
             {
               paymentStatus: "locked",
-              lockExpiresAt: {
-                gt: new Date()
-              }
+              lockExpiresAt: { gt: new Date() }
             }
           ]
         }
@@ -190,7 +186,7 @@ export const lockBooking = async (req: Request, res: Response) => {
 
         slots: {
           create: slotIds.map((slotId: string) => ({
-            slotId: slotId
+            slotId
           }))
         }
 
@@ -212,4 +208,27 @@ export const lockBooking = async (req: Request, res: Response) => {
 
   }
 
+};
+
+export const getBooking = async (req: Request, res: Response) => {
+
+  const { bookingId } = req.params;
+
+  const booking = await prisma.booking.findUnique({
+    where: { bookingId },
+    include: {
+      product: true,
+      slots: {
+        include: {
+          slot: true
+        }
+      }
+    }
+  });
+
+  if (!booking) {
+    return res.status(404).json({ message: "Booking not found" });
+  }
+
+  res.json(booking);
 };

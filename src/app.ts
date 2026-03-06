@@ -42,6 +42,7 @@ app.use("/api/bookings", bookingRoutes);
 app.use("/api/products", productRoutes);
 app.use("/api/availability", availabilityRoutes);
 app.use("/api/razorpay", paymentRoutes);
+app.use("/api/payment", paymentRoutes);
 
 app.use(
   "/api/bookings/webhook",

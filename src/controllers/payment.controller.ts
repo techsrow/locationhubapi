@@ -23,37 +23,42 @@ export const createOrder = async (req: Request, res: Response) => {
       return res.status(404).json({ message: "Booking not found" });
     }
 
-   const productPrice = Number(booking.product.price);
+    const productPrice = Number(booking.product.price);
 
-const bookingAmount = productPrice * 0.5;
+    const bookingAmount = productPrice * 0.5;
+    const gstAmount = bookingAmount * 0.18;
+    const totalPay = bookingAmount + gstAmount;
 
-const gstAmount = bookingAmount * 0.18;
+    const razorAmount = Math.round(totalPay * 100);
 
-const totalPay = bookingAmount + gstAmount;
-
-const razorAmount = Math.round(totalPay * 100);
-
-  const order = await razorpay.orders.create({
-  amount: razorAmount,
-  currency: "INR",
-  receipt: booking.bookingId
-});
+    const order = await razorpay.orders.create({
+      amount: razorAmount,
+      currency: "INR",
+      receipt: booking.bookingId
+    });
 
     await prisma.booking.update({
-  where: { id: booking.id },
-  data: {
-    bookingAmount,
-    gstAmount,
-    totalAmount: totalPay,
-    razorpayOrderId: order.id
-  }
-});
+      where: { id: booking.id },
+      data: {
+        bookingAmount,
+        gstAmount,
+        totalAmount: totalPay,
+        razorpayOrderId: order.id
+      }
+    });
 
     res.json(order);
 
   } catch (error) {
-    res.status(500).json({ message: "Order creation failed" });
+
+    console.error(error);
+
+    res.status(500).json({
+      message: "Order creation failed"
+    });
+
   }
+
 };
 
 export const verifyPayment = async (req: Request, res: Response) => {
@@ -98,8 +103,13 @@ export const verifyPayment = async (req: Request, res: Response) => {
     });
 
   } catch (error) {
+
+    console.error(error);
+
     res.status(500).json({
       message: "Verification failed"
     });
+
   }
+
 };
