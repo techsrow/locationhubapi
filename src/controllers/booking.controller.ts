@@ -1,148 +1,30 @@
-// import { Request, Response } from "express";
-// import crypto from "crypto";
-// import * as bookingService from "../services/booking.service";
-
-// /* =========================
-//    STEP 1 — LOCK BOOKING
-// ========================= */
-
-// export const lockBooking = async (req: Request, res: Response) => {
-//   try {
-//     const { productId, bookingDate, slotIds } = req.body;
-
-//     if (!productId || !bookingDate || !slotIds?.length) {
-//       return res.status(400).json({
-//         success: false,
-//         message: "Missing required fields",
-//       });
-//     }
-
-//     const booking = await bookingService.lockBooking({
-//       productId,
-//       bookingDate,
-//       slotIds,
-//     });
-
-//     return res.status(201).json({
-//       success: true,
-//       bookingId: booking.bookingId,
-//     });
-//   } catch (err: any) {
-//     console.error("LOCK ERROR:", err);
-//     return res.status(400).json({
-//       success: false,
-//       message: err.message,
-//     });
-//   }
-// };
-
-
-// export const getBooking = async (req: Request, res: Response) => {
-//   try {
-//     const { bookingId } = req.params;
-
-//     const booking = await bookingService.getBookingSummary(bookingId);
-
-//     return res.json({
-//       success: true,
-//       booking,
-//     });
-//   } catch (err: any) {
-//     return res.status(404).json({
-//       success: false,
-//       message: err.message,
-//     });
-//   }
-// };
-
-
-// export const updateCustomerDetails = async (req: Request, res: Response) => {
-//   try {
-//     const { bookingId } = req.params;
-
-//     const booking = await bookingService.updateCustomerDetails(
-//       bookingId,
-//       req.body
-//     );
-
-//     return res.json({
-//       success: true,
-//       booking,
-//     });
-//   } catch (err: any) {
-//     return res.status(400).json({
-//       success: false,
-//       message: err.message,
-//     });
-//   }
-// };
-
-// export const createPayment = async (req: Request, res: Response) => {
-//   try {
-//     const { bookingId } = req.params;
-
-//     const order = await bookingService.createPaymentOrder(bookingId);
-
-//     return res.json({
-//       success: true,
-//       order,
-//     });
-//   } catch (err: any) {
-//     return res.status(400).json({
-//       success: false,
-//       message: err.message,
-//     });
-//   }
-// };
-
-// export const webhook = async (req: Request, res: Response) => {
-//   try {
-//     const secret = process.env.RAZORPAY_WEBHOOK_SECRET as string;
-
-//     const signature = req.headers["x-razorpay-signature"] as string;
-
-//     const rawBody = (req as any).rawBody;
-
-//     const generatedSignature = crypto
-//       .createHmac("sha256", secret)
-//       .update(rawBody)
-//       .digest("hex");
-
-//     if (generatedSignature !== signature) {
-//       return res.status(400).send("Invalid webhook signature");
-//     }
-
-//     const event = JSON.parse(rawBody.toString());
-
-//     if (event.event === "payment.captured") {
-//       const orderId = event.payload.payment.entity.order_id;
-//       const paymentId = event.payload.payment.entity.id;
-
-//       await bookingService.markBookingPaidByWebhook(
-//         orderId,
-//         paymentId
-//       );
-//     }
-
-//     return res.json({ status: "ok" });
-
-//   } catch (err) {
-//     console.error(err);
-//     return res.status(500).send("Webhook error");
-//   }
-// };
-
 import prisma from "../lib/prisma";
 import { Request, Response } from "express";
 import { v4 as uuidv4 } from "uuid";
+
+/* =========================
+   LOCK BOOKING
+========================= */
 
 export const lockBooking = async (req: Request, res: Response) => {
 
   try {
 
-    const { productId, date, slotIds } = req.body;
+    const {
+      productId,
+      date,
+      slotIds,
+      firstName,
+      lastName,
+      email,
+      phone,
+      address,
+      city,
+      state,
+      postcode
+    } = req.body;
 
-    if (!productId || !date || !slotIds || !Array.isArray(slotIds) || slotIds.length === 0) {
+    if (!productId || !date || !slotIds || !Array.isArray(slotIds)) {
       return res.status(400).json({
         message: "Invalid booking request"
       });
@@ -156,7 +38,7 @@ export const lockBooking = async (req: Request, res: Response) => {
       where: {
         slotId: { in: slotIds },
         booking: {
-          bookingDate: bookingDate,
+          bookingDate,
           OR: [
             { paymentStatus: "paid" },
             {
@@ -178,10 +60,24 @@ export const lockBooking = async (req: Request, res: Response) => {
 
     const booking = await prisma.booking.create({
       data: {
+
         bookingId: uuidv4(),
-        productId: productId,
-        bookingDate: bookingDate,
+
+        productId,
+
+        bookingDate,
+
+        firstName,
+        lastName,
+        email,
+        phone,
+        address,
+        city,
+        state,
+        postcode,
+
         paymentStatus: "locked",
+
         lockExpiresAt: lockExpires,
 
         slots: {
@@ -210,25 +106,43 @@ export const lockBooking = async (req: Request, res: Response) => {
 
 };
 
+
+/* =========================
+   GET BOOKING
+========================= */
+
 export const getBooking = async (req: Request, res: Response) => {
 
-  const { bookingId } = req.params;
+  try {
 
-  const booking = await prisma.booking.findUnique({
-    where: { bookingId },
-    include: {
-      product: true,
-      slots: {
-        include: {
-          slot: true
+    const { bookingId } = req.params;
+
+    const booking = await prisma.booking.findUnique({
+      where: { bookingId },
+      include: {
+        product: true,
+        slots: {
+          include: {
+            slot: true
+          }
         }
       }
-    }
-  });
+    });
 
-  if (!booking) {
-    return res.status(404).json({ message: "Booking not found" });
+    if (!booking) {
+      return res.status(404).json({
+        message: "Booking not found"
+      });
+    }
+
+    res.json(booking);
+
+  } catch (error) {
+
+    res.status(500).json({
+      message: "Error fetching booking"
+    });
+
   }
 
-  res.json(booking);
 };

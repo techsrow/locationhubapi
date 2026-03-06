@@ -2,11 +2,20 @@ import Razorpay from "razorpay";
 import prisma from "../lib/prisma";
 import { Request, Response } from "express";
 import crypto from "crypto";
+import transporter from "../services/email.service";
+import { customerBookingEmail } from "../emails/customerBookingEmail";
+import { adminBookingEmail } from "../emails/adminBookingEmail";
 
 const razorpay = new Razorpay({
   key_id: process.env.RAZORPAY_KEY_ID!,
   key_secret: process.env.RAZORPAY_KEY_SECRET!
 });
+
+
+
+/* ------------------------------------------------
+   CREATE RAZORPAY ORDER
+------------------------------------------------ */
 
 export const createOrder = async (req: Request, res: Response) => {
 
@@ -16,7 +25,12 @@ export const createOrder = async (req: Request, res: Response) => {
 
     const booking = await prisma.booking.findUnique({
       where: { bookingId },
-      include: { product: true }
+      include: {
+        product: true,
+        slots: {
+          include: { slot: true }
+        }
+      }
     });
 
     if (!booking) {
@@ -51,7 +65,7 @@ export const createOrder = async (req: Request, res: Response) => {
 
   } catch (error) {
 
-    console.error(error);
+    console.error("Create order error:", error);
 
     res.status(500).json({
       message: "Order creation failed"
@@ -60,6 +74,12 @@ export const createOrder = async (req: Request, res: Response) => {
   }
 
 };
+
+
+
+/* ------------------------------------------------
+   VERIFY PAYMENT
+------------------------------------------------ */
 
 export const verifyPayment = async (req: Request, res: Response) => {
 
@@ -79,11 +99,21 @@ export const verifyPayment = async (req: Request, res: Response) => {
       .digest("hex");
 
     if (expectedSignature !== razorpay_signature) {
-      return res.status(400).json({ message: "Invalid signature" });
+
+      return res.status(400).json({
+        message: "Invalid signature"
+      });
+
     }
 
     const booking = await prisma.booking.findFirst({
-      where: { razorpayOrderId: razorpay_order_id }
+      where: { razorpayOrderId: razorpay_order_id },
+      include: {
+        product: true,
+        slots: {
+          include: { slot: true }
+        }
+      }
     });
 
     if (!booking) {
@@ -98,13 +128,103 @@ export const verifyPayment = async (req: Request, res: Response) => {
       }
     });
 
+
+    /* ------------------------------------------------
+       PREPARE EMAIL DATA
+    ------------------------------------------------ */
+
+    const slotText = booking.slots
+      .map((s) => s.slot.label)
+      .join(", ");
+
+    const bookingDate = new Date(booking.bookingDate).toLocaleDateString();
+
+
+    /* ------------------------------------------------
+       SEND CUSTOMER EMAIL
+    ------------------------------------------------ */
+
+   try {
+
+  if (booking.email) {
+
+    await transporter.sendMail({
+
+      from: process.env.EMAIL_USER,
+
+      to: booking.email,
+
+      subject: `Booking Confirmed - ${booking.bookingId}`,
+
+      html: customerBookingEmail({
+        bookingId: booking.bookingId,
+        firstName: booking.firstName || "Customer",
+        product: booking.product.name,
+        date: bookingDate,
+        slots: slotText
+      })
+
+    });
+
+  }
+
+} catch (err) {
+
+  console.error("Customer email failed:", err);
+
+}
+
+
+    /* ------------------------------------------------
+       SEND ADMIN EMAIL
+    ------------------------------------------------ */
+
+   try {
+
+  await transporter.sendMail({
+
+    from: process.env.EMAIL_USER,
+
+    to: process.env.ADMIN_EMAIL || process.env.EMAIL_USER,
+
+    subject: `New Booking ${booking.bookingId}`,
+
+   html: adminBookingEmail({
+  bookingId: booking.bookingId,
+  name: `${booking.firstName || ""} ${booking.lastName || ""}`.trim(),
+  email: booking.email || "Not Provided",
+  date: bookingDate,
+  package: booking.product.name,
+  slots: slotText,
+  cost: booking.product.price,
+  total: booking.totalAmount,
+  advance: booking.totalAmount, // ✅ FIXED
+  due: Number(booking.product.price) - Number(booking.bookingAmount),
+  paymentMethod: "Razorpay",
+  address: booking.address || "-",
+  city: booking.city || "-",
+  postcode: booking.postcode || "-",
+  state: booking.state || "-",
+  phone: booking.phone || "-"
+})
+
+  });
+
+} catch (err) {
+
+  console.error("Admin email failed:", err);
+
+}
+
+
     res.json({
       success: true
     });
 
   } catch (error) {
 
-    console.error(error);
+    console.log("Verify Payment Request:", req.body);
+    console.error("Payment verification error:", error);
 
     res.status(500).json({
       message: "Verification failed"

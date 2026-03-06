@@ -112,3 +112,33 @@ export const getProductBySlug = async (req: Request, res: Response) => {
     res.status(500).json({ message: "Server error" });
   }
 };
+
+// export const addProduct = async (req: Request, res: Response) => {
+//   try {
+//     const { name, price, slots } = req.body;
+
+//     if (!name || !price) {
+//       return res.status(400).json({
+//         success: false,
+//         message: "Name and price are required",
+//       });
+//     }
+
+//     const product = await productService.createProduct({
+//       name,
+//       price: Number(price),
+//       slots,
+//     });
+
+//     return res.status(201).json({
+//       success: true,
+//       product,
+//     });
+
+//   } catch (err: any) {
+//     return res.status(400).json({
+//       success: false,
+//       message: err.message,
+//     });
+//   }
+// };

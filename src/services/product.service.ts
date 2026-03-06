@@ -10,29 +10,29 @@ interface CreateProductInput {
   }[];
 }
 
-export const createProduct = async (data: CreateProductInput) => {
+// export const createProduct = async (data: CreateProductInput) => {
 
-  const product = await prisma.product.create({
-    data: {
-      name: data.name,
-      price: data.price,
-      slots: data.slots
-        ? {
-            create: data.slots.map((slot) => ({
-              label: slot.label,
-              startTime: slot.startTime,
-              endTime: slot.endTime,
-            })),
-          }
-        : undefined,
-    },
-    include: {
-      slots: true,
-    },
-  });
+//   const product = await prisma.product.create({
+//     data: {
+//       name: data.name,
+//       price: data.price,
+//       slots: data.slots
+//         ? {
+//             create: data.slots.map((slot) => ({
+//               label: slot.label,
+//               startTime: slot.startTime,
+//               endTime: slot.endTime,
+//             })),
+//           }
+//         : undefined,
+//     },
+//     include: {
+//       slots: true,
+//     },
+//   });
 
-  return product;
-};
+//   return product;
+// };
 
 export const createSlot = async (data: {
   productId: string;
