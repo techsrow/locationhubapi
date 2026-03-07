@@ -107,8 +107,56 @@ export const lockBooking = async (req: Request, res: Response) => {
 };
 
 
+
+/* =========================
+   GET ALL BOOKINGS
+========================= */
+
+export const getAllBookings = async (req: Request, res: Response) => {
+
+  try {
+
+    const bookings = await prisma.booking.findMany({
+
+      orderBy: {
+        createdAt: "desc"
+      },
+
+      include: {
+
+        product: true,
+
+        slots: {
+          include: {
+            slot: true
+          }
+        }
+
+      }
+
+    });
+
+    res.json(bookings);
+
+  } catch (error) {
+
+    console.error("Fetch bookings error:", error);
+
+    res.status(500).json({
+      message: "Error fetching bookings"
+    });
+
+  }
+
+};
+
+
 /* =========================
    GET BOOKING
+========================= */
+
+/* =========================
+   GET BOOKING DETAILS
 ========================= */
 
 export const getBooking = async (req: Request, res: Response) => {
@@ -118,26 +166,36 @@ export const getBooking = async (req: Request, res: Response) => {
     const { bookingId } = req.params;
 
     const booking = await prisma.booking.findUnique({
+
       where: { bookingId },
+
       include: {
+
         product: true,
+
         slots: {
           include: {
             slot: true
           }
         }
+
       }
+
     });
 
     if (!booking) {
+
       return res.status(404).json({
         message: "Booking not found"
       });
+
     }
 
     res.json(booking);
 
   } catch (error) {
+
+    console.error("Booking details error:", error);
 
     res.status(500).json({
       message: "Error fetching booking"
@@ -145,4 +203,56 @@ export const getBooking = async (req: Request, res: Response) => {
 
   }
 
+};
+
+export const getCalendarBookings = async (req: Request, res: Response) => {
+  try {
+
+    const bookings = await prisma.booking.findMany({
+      include: {
+        product: true,
+        slots: {
+          include: { slot: true }
+        }
+      }
+    });
+
+    const events = bookings.flatMap((booking) =>
+      booking.slots.map((s) => {
+
+        const date = new Date(booking.bookingDate);
+
+        const start = new Date(date);
+        const end = new Date(date);
+
+        const [sh, sm] = s.slot.startTime.split(":");
+        const [eh, em] = s.slot.endTime.split(":");
+
+        start.setHours(Number(sh), Number(sm), 0, 0);
+        end.setHours(Number(eh), Number(em), 0, 0);
+
+        const customerName =
+          `${booking.firstName ?? ""} ${booking.lastName ?? ""}`.trim() || "Customer";
+
+        return {
+          title: `${booking.product.name} - ${customerName}`,
+          start,
+          end,
+          bookingId: booking.bookingId
+        };
+
+      })
+    );
+
+    res.json(events);
+
+  } catch (error) {
+
+    console.error("Calendar booking error:", error);
+
+    res.status(500).json({
+      message: "Error loading calendar bookings"
+    });
+
+  }
 };

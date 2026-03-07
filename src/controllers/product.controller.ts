@@ -261,11 +261,26 @@ export const deleteProduct = async (req: Request, res: Response) => {
 
     const { id } = req.params;
 
-    /* DELETE ALL SLOTS FIRST */
+    /* Check if bookings exist */
+
+    const bookingCount = await prisma.booking.count({
+      where: { productId: id }
+    });
+
+    if (bookingCount > 0) {
+      return res.status(400).json({
+        success: false,
+        message: "Cannot delete product because bookings exist"
+      });
+    }
+
+    /* Delete slots first */
 
     await prisma.slot.deleteMany({
       where: { productId: id }
     });
+
+    /* Delete product */
 
     await prisma.product.delete({
       where: { id }
@@ -276,6 +291,8 @@ export const deleteProduct = async (req: Request, res: Response) => {
     });
 
   } catch (error) {
+
+    console.error("Delete product error:", error);
 
     res.status(500).json({
       success: false,
