@@ -10,6 +10,13 @@ import setupRoutes from "./routes/setup.routes";
 import propsRoutes from "./routes/props.routes";
 import makeupArtistRoutes from "./routes/makeupArtist.routes";
 import setRoutes from "./routes/setRoutes";
+import bookingRoutes from "./routes/booking.routes";
+import productRoutes from "./routes/product.routes";
+import availabilityRoutes from "./routes/availability.routes"
+import paymentRoutes from "./routes/payment.routes";
+import analyticsRoutes from "./routes/analytics.routes";
+
+
 
 
 
@@ -32,9 +39,17 @@ app.use("/api/setups", setupRoutes);
 app.use("/api/props", propsRoutes);
 app.use("/api/makeup-artist", makeupArtistRoutes);
 app.use("/api/set", setRoutes);
+app.use("/api/bookings", bookingRoutes);
+app.use("/api/products", productRoutes);
+app.use("/api/availability", availabilityRoutes);
+app.use("/api/razorpay", paymentRoutes);
+app.use("/api/payment", paymentRoutes);
+app.use("/api/analytics", analyticsRoutes);
 
-
-
+app.use(
+  "/api/bookings/webhook",
+  express.raw({ type: "application/json" })
+);
 
 
 

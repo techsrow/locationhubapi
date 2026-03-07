@@ -3,7 +3,7 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
+  provider = "mysql"
   url      = env("DATABASE_URL")
 }
 
@@ -47,7 +47,7 @@ model Set {
   mainImage   String
   content     String        @db.Text   // raw HTML from CKEditor
   createdAt   DateTime      @default(now())
-
+  pageUrl     String        @unique        // ✅ ADD THIS
   gallery     SetGallery[]
 }
 
@@ -65,6 +65,7 @@ model AddOnService {
   id           String   @id @default(uuid())
   title        String
   imageUrl     String
+  pageUrl     String        @unique  
   displayorder Int
   createdAt    DateTime @default(now())
 }
@@ -85,7 +86,7 @@ model Setup {
   content      String
   displayOrder Int
   createdAt    DateTime @default(now())
-
+pageUrl     String        @unique        // ✅ ADD THIS
   gallery      SetupGallery[]
 }
 
@@ -113,3 +114,92 @@ model MakeupArtist {
   createdAt    DateTime @default(now())
 }
 
+model Product {
+  id        String   @id @default(uuid())
+  name      String
+  slug      String   @unique
+  price     Decimal
+  bookingAmount Decimal
+
+  slots     Slot[]
+  bookings  Booking[]
+
+  createdAt DateTime @default(now())
+}
+
+enum BookingStatus {
+  locked
+  paid
+  completed
+  cancelled
+  expired
+}
+
+model Slot {
+  id        String   @id @default(uuid())
+
+  productId String
+  product   Product  @relation(fields: [productId], references: [id])
+
+  label     String
+  startTime String
+  endTime   String
+
+  bookings  BookingSlot[]
+
+  createdAt DateTime @default(now())
+}
+
+model Booking {
+  id        String   @id @default(uuid())
+
+  bookingId String   @unique
+
+  productId String
+  product   Product  @relation(fields: [productId], references: [id])
+
+  bookingDate DateTime
+
+  // 👤 CUSTOMER
+  firstName String?
+  lastName  String?
+  address   String?
+  city      String?
+  state     String?
+  postcode  String?
+  phone     String?
+  email     String?
+  notes     String?
+
+  // 💰 PRICING
+  totalAmount   Decimal?
+  bookingAmount Decimal?
+  gstAmount     Decimal?
+
+  paymentStatus BookingStatus @default(locked)
+
+  // 💳 PAYMENT
+  razorpayOrderId   String? @unique
+  razorpayPaymentId String?
+
+  // 🔒 SLOT LOCK
+  lockExpiresAt DateTime?
+
+  slots BookingSlot[]
+
+  createdAt DateTime @default(now())
+
+  @@index([productId, bookingDate])
+}
+
+model BookingSlot {
+  id String @id @default(uuid())
+
+  bookingId String
+  booking   Booking @relation(fields: [bookingId], references: [id])
+
+  slotId String
+  slot   Slot @relation(fields: [slotId], references: [id])
+
+  @@unique([bookingId, slotId])
+}

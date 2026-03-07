@@ -1,6 +1,6 @@
 import prisma from "../lib/prisma";
 import razorpay from "../utils/razorpay";
-import transporter from "./email.service";
+import { sendBookingEmails } from "./email.service";
 
 /* =========================
    LOCK BOOKING (FREEZE DATA)
@@ -64,7 +64,7 @@ export const lockBooking = async (data: {
     }
 
     // 4️⃣ Pricing Calculation
-    const baseAmount = Number(product.price) * slotIds.length;
+    const baseAmount = product.price * slotIds.length;
     const gstAmount = Number((baseAmount * 0.18).toFixed(2));
     const totalAmount = Number((baseAmount + gstAmount).toFixed(2));
     const bookingAmount = Number((totalAmount * 0.5).toFixed(2));
@@ -113,7 +113,7 @@ export const getBookingSummary = async (bookingId: string) => {
   if (!booking) throw new Error("Booking not found");
 
   const remaining =
-  Number(booking.totalAmount ?? 0) - Number(booking.bookingAmount ?? 0);
+    (booking.totalAmount ?? 0) - (booking.bookingAmount ?? 0);
 
   return {
     bookingId: booking.bookingId,
@@ -189,7 +189,7 @@ export const createPaymentOrder = async (bookingId: string) => {
   }
 
   const razorOrder = await razorpay.orders.create({
-    amount: Math.round(Number(booking.bookingAmount ?? 0) * 100),
+    amount: Math.round((booking.bookingAmount ?? 0) * 100), // paise
     currency: "INR",
     receipt: bookingId,
   });

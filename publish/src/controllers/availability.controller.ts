@@ -25,7 +25,7 @@ export const getAvailability = async (req: Request, res: Response) => {
       }
     });
 
-    const bookedSlotIds = booked.map((b: any) => b.slotId);
+    const bookedSlotIds = booked.map(b => b.slotId);
 
     res.json({
       slots,

@@ -217,32 +217,32 @@ export const getCalendarBookings = async (req: Request, res: Response) => {
       }
     });
 
-   const events = bookings.flatMap((booking: any) =>
-  booking.slots.map((s: any) => {
+    const events = bookings.flatMap((booking) =>
+      booking.slots.map((s) => {
 
-    const date = new Date(booking.bookingDate);
+        const date = new Date(booking.bookingDate);
 
-    const start = new Date(date);
-    const end = new Date(date);
+        const start = new Date(date);
+        const end = new Date(date);
 
-    const [sh, sm] = s.slot.startTime.split(":");
-    const [eh, em] = s.slot.endTime.split(":");
+        const [sh, sm] = s.slot.startTime.split(":");
+        const [eh, em] = s.slot.endTime.split(":");
 
-    start.setHours(Number(sh), Number(sm), 0, 0);
-    end.setHours(Number(eh), Number(em), 0, 0);
+        start.setHours(Number(sh), Number(sm), 0, 0);
+        end.setHours(Number(eh), Number(em), 0, 0);
 
-    const customerName =
-      `${booking.firstName ?? ""} ${booking.lastName ?? ""}`.trim() || "Customer";
+        const customerName =
+          `${booking.firstName ?? ""} ${booking.lastName ?? ""}`.trim() || "Customer";
 
-    return {
-      title: `${booking.product.name} - ${customerName}`,
-      start,
-      end,
-      bookingId: booking.bookingId
-    };
+        return {
+          title: `${booking.product.name} - ${customerName}`,
+          start,
+          end,
+          bookingId: booking.bookingId
+        };
 
-  })
-);
+      })
+    );
 
     res.json(events);
 

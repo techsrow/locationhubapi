@@ -175,20 +175,21 @@ export const addSlot = async (req: Request, res: Response) => {
 
     /* CHECK OVERLAPPING SLOTS */
 
-   const existingSlots = await prisma.slot.findMany({
-  where: { productId }
-});
+    const existingSlots = await prisma.slot.findMany({
+      where: { productId }
+    });
 
-const overlap = existingSlots.some((slot: any) => {
-  return startTime < slot.endTime && endTime > slot.startTime;
-});
+    const overlap = existingSlots.some((slot) => {
+      return startTime < slot.endTime && endTime > slot.startTime;
+    });
 
-if (overlap) {
-  return res.status(400).json({
-    success: false,
-    message: "Slot overlaps with existing slot"
-  });
-}
+    if (overlap) {
+      return res.status(400).json({
+        success: false,
+        message: "Slot overlaps with existing slot"
+      });
+    }
+
     const slot = await productService.createSlot({
       productId,
       label,

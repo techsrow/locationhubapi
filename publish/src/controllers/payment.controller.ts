@@ -133,9 +133,9 @@ export const verifyPayment = async (req: Request, res: Response) => {
        PREPARE EMAIL DATA
     ------------------------------------------------ */
 
-   const slotText = booking.slots
-  .map((s: any) => s.slot.label)
-  .join(", ");
+    const slotText = booking.slots
+      .map((s) => s.slot.label)
+      .join(", ");
 
     const bookingDate = new Date(booking.bookingDate).toLocaleDateString();
 

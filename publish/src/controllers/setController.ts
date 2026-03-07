@@ -8,23 +8,38 @@ import path from "path";
 ================================ */
 export const createSet = async (req: Request, res: Response) => {
   try {
-    const { title, content } = req.body;
+    const { title, content, pageUrl } = req.body;
     const file = req.file;
 
-    if (!title || !file) {
-      return res.status(400).json({ message: "Title & Main Image required" });
+    if (!title || !pageUrl || !file) {
+      return res.status(400).json({
+        message: "Title, Page URL & Main Image are required",
+      });
+    }
+
+    // Check duplicate pageUrl
+    const existingSlug = await prisma.set.findUnique({
+      where: { pageUrl },
+    });
+
+    if (existingSlug) {
+      return res.status(400).json({
+        message: "Page URL already exists",
+      });
     }
 
     const newSet = await prisma.set.create({
       data: {
         title,
         content,
+        pageUrl,
         mainImage: `/uploads/${file.filename}`,
       },
     });
 
     res.status(201).json(newSet);
   } catch (error) {
+    console.error(error);
     res.status(500).json({ message: "Create set failed" });
   }
 };
@@ -32,7 +47,7 @@ export const createSet = async (req: Request, res: Response) => {
 /* ================================
    GET ALL SETS
 ================================ */
-export const getAllSets = async (req: Request, res: Response) => {
+export const getAllSets = async (_req: Request, res: Response) => {
   try {
     const sets = await prisma.set.findMany({
       orderBy: { createdAt: "desc" },
@@ -40,13 +55,39 @@ export const getAllSets = async (req: Request, res: Response) => {
 
     res.json(sets);
   } catch (error) {
+    console.error(error);
     res.status(500).json({ message: "Fetch failed" });
   }
 };
 
 /* ================================
-   GET SINGLE SET (WITH GALLERY)
+   GET SINGLE SET BY pageUrl
 ================================ */
+// export const getSingleSet = async (req: Request, res: Response) => {
+//   try {
+//     const { pageUrl } = req.params;
+
+//     const set = await prisma.set.findUnique({
+//       where: { pageUrl },
+//       include: {
+//         gallery: {
+//           orderBy: { displayorder: "asc" },
+//         },
+//       },
+//     });
+
+//     if (!set) {
+//       return res.status(404).json({ message: "Set not found" });
+//     }
+
+//     res.json(set);
+//   } catch (error) {
+//     console.error(error);
+//     res.status(500).json({ message: "Fetch failed" });
+//   }
+// };
+
+
 export const getSingleSet = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
@@ -66,6 +107,7 @@ export const getSingleSet = async (req: Request, res: Response) => {
 
     res.json(set);
   } catch (error) {
+    console.error(error);
     res.status(500).json({ message: "Fetch failed" });
   }
 };
@@ -76,21 +118,38 @@ export const getSingleSet = async (req: Request, res: Response) => {
 export const updateSet = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    const { title, content } = req.body;
+    const { title, content, pageUrl } = req.body;
     const file = req.file;
 
-    const existing = await prisma.set.findUnique({ where: { id } });
+    const existing = await prisma.set.findUnique({
+      where: { id },
+    });
+
     if (!existing) {
       return res.status(404).json({ message: "Set not found" });
+    }
+
+    // If pageUrl changed, check duplicate
+    if (pageUrl && pageUrl !== existing.pageUrl) {
+      const slugExists = await prisma.set.findUnique({
+        where: { pageUrl },
+      });
+
+      if (slugExists) {
+        return res.status(400).json({
+          message: "Page URL already exists",
+        });
+      }
     }
 
     const data: any = {
       title,
       content,
+      pageUrl,
     };
 
     if (file) {
-      // delete old main image
+      // Delete old image
       const oldPath = path.join(
         __dirname,
         "../../",
@@ -111,6 +170,7 @@ export const updateSet = async (req: Request, res: Response) => {
 
     res.json(updated);
   } catch (error) {
+    console.error(error);
     res.status(500).json({ message: "Update failed" });
   }
 };
@@ -131,7 +191,7 @@ export const deleteSet = async (req: Request, res: Response) => {
       return res.status(404).json({ message: "Set not found" });
     }
 
-    // delete main image
+    // Delete main image
     const mainPath = path.join(
       __dirname,
       "../../",
@@ -142,13 +202,14 @@ export const deleteSet = async (req: Request, res: Response) => {
       fs.unlinkSync(mainPath);
     }
 
-    // delete gallery images
+    // Delete gallery images
     existing.gallery.forEach((img) => {
       const imgPath = path.join(
         __dirname,
         "../../",
         img.imageUrl.replace("/", "")
       );
+
       if (fs.existsSync(imgPath)) {
         fs.unlinkSync(imgPath);
       }
@@ -160,6 +221,7 @@ export const deleteSet = async (req: Request, res: Response) => {
 
     res.json({ message: "Set deleted successfully" });
   } catch (error) {
+    console.error(error);
     res.status(500).json({ message: "Delete failed" });
   }
 };
@@ -193,6 +255,7 @@ export const addSetGalleryImage = async (req: Request, res: Response) => {
 
     res.json(image);
   } catch (error) {
+    console.error(error);
     res.status(500).json({ message: "Upload failed" });
   }
 };
@@ -228,9 +291,12 @@ export const deleteSetGalleryImage = async (req: Request, res: Response) => {
 
     res.json({ message: "Gallery image deleted" });
   } catch (error) {
+    console.error(error);
     res.status(500).json({ message: "Delete failed" });
   }
 };
+
+
 
 /* ================================
    REORDER GALLERY
@@ -250,10 +316,14 @@ export const reorderSetGallery = async (req: Request, res: Response) => {
 
     res.json({ message: "Gallery reordered successfully" });
   } catch (error) {
+    console.error(error);
     res.status(500).json({ message: "Reorder failed" });
   }
 };
 
+/* ================================
+   GET GALLERY BY SET ID
+================================ */
 export const getSetGallery = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
@@ -265,6 +335,7 @@ export const getSetGallery = async (req: Request, res: Response) => {
 
     res.json(images);
   } catch (error) {
+    console.error(error);
     res.status(500).json({ message: "Fetch gallery failed" });
   }
 };
