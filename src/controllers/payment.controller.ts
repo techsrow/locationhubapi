@@ -12,7 +12,6 @@ const razorpay = new Razorpay({
 });
 
 
-
 /* ------------------------------------------------
    CREATE RAZORPAY ORDER
 ------------------------------------------------ */
@@ -37,10 +36,13 @@ export const createOrder = async (req: Request, res: Response) => {
       return res.status(404).json({ message: "Booking not found" });
     }
 
-    const productPrice = Number(booking.product.price);
+    /* ===============================
+       FIXED PAYMENT CALCULATION
+       Advance = ₹5000 + GST
+    =============================== */
 
-    const bookingAmount = productPrice * 0.5;
-    const gstAmount = bookingAmount * 0.18;
+    const bookingAmount = 5000;
+    const gstAmount = Number((bookingAmount * 0.18).toFixed(2));
     const totalPay = bookingAmount + gstAmount;
 
     const razorAmount = Math.round(totalPay * 100);
@@ -54,8 +56,8 @@ export const createOrder = async (req: Request, res: Response) => {
     await prisma.booking.update({
       where: { id: booking.id },
       data: {
-        bookingAmount,
-        gstAmount,
+        bookingAmount: bookingAmount,
+        gstAmount: gstAmount,
         totalAmount: totalPay,
         razorpayOrderId: order.id
       }
@@ -74,7 +76,6 @@ export const createOrder = async (req: Request, res: Response) => {
   }
 
 };
-
 
 
 /* ------------------------------------------------
@@ -133,9 +134,9 @@ export const verifyPayment = async (req: Request, res: Response) => {
        PREPARE EMAIL DATA
     ------------------------------------------------ */
 
-   const slotText = booking.slots
-  .map((s: any) => s.slot.label)
-  .join(", ");
+    const slotText = booking.slots
+      .map((s: any) => s.slot.label)
+      .join(", ");
 
     const bookingDate = new Date(booking.bookingDate).toLocaleDateString();
 
@@ -144,77 +145,77 @@ export const verifyPayment = async (req: Request, res: Response) => {
        SEND CUSTOMER EMAIL
     ------------------------------------------------ */
 
-   try {
+    try {
 
-  if (booking.email) {
+      if (booking.email) {
 
-    await transporter.sendMail({
+        await transporter.sendMail({
 
-      from: process.env.EMAIL_USER,
+          from: process.env.EMAIL_USER,
 
-      to: booking.email,
+          to: booking.email,
 
-      subject: `Booking Confirmed - ${booking.bookingId}`,
+          subject: `Booking Confirmed - ${booking.bookingId}`,
 
-      html: customerBookingEmail({
-        bookingId: booking.bookingId,
-        firstName: booking.firstName || "Customer",
-        product: booking.product.name,
-        date: bookingDate,
-        slots: slotText
-      })
+          html: customerBookingEmail({
+            bookingId: booking.bookingId,
+            firstName: booking.firstName || "Customer",
+            product: booking.product.name,
+            date: bookingDate,
+            slots: slotText
+          })
 
-    });
+        });
 
-  }
+      }
 
-} catch (err) {
+    } catch (err) {
 
-  console.error("Customer email failed:", err);
+      console.error("Customer email failed:", err);
 
-}
+    }
 
 
     /* ------------------------------------------------
        SEND ADMIN EMAIL
     ------------------------------------------------ */
 
-   try {
+    try {
 
-  await transporter.sendMail({
+      await transporter.sendMail({
 
-    from: process.env.EMAIL_USER,
+        from: process.env.EMAIL_USER,
 
-    to: process.env.ADMIN_EMAIL || process.env.EMAIL_USER,
+        to: process.env.ADMIN_EMAIL || process.env.EMAIL_USER,
 
-    subject: `New Booking ${booking.bookingId}`,
+        subject: `New Booking ${booking.bookingId}`,
 
-   html: adminBookingEmail({
-  bookingId: booking.bookingId,
-  name: `${booking.firstName || ""} ${booking.lastName || ""}`.trim(),
-  email: booking.email || "Not Provided",
-  date: bookingDate,
-  package: booking.product.name,
-  slots: slotText,
-  cost: booking.product.price,
-  total: booking.totalAmount,
-  advance: booking.totalAmount, // ✅ FIXED
-  due: Number(booking.product.price) - Number(booking.bookingAmount),
-  paymentMethod: "Razorpay",
-  address: booking.address || "-",
-  city: booking.city || "-",
-  postcode: booking.postcode || "-",
-  state: booking.state || "-",
-  phone: booking.phone || "-"
-})
+        html: adminBookingEmail({
+          bookingId: booking.bookingId,
+          name: `${booking.firstName || ""} ${booking.lastName || ""}`.trim(),
+          email: booking.email || "Not Provided",
+          date: bookingDate,
+          package: booking.product.name,
+          slots: slotText,
+          cost: booking.product.price,
+          total: booking.totalAmount,
+          advance: booking.bookingAmount, // ✅ FIXED
+          due: Number(booking.product.price) - Number(booking.bookingAmount),
+          paymentMethod: "Razorpay",
+          address: booking.address || "-",
+          city: booking.city || "-",
+          postcode: booking.postcode || "-",
+          state: booking.state || "-",
+          phone: booking.phone || "-"
+        })
 
-  });
+      });
 
-} catch (err) {
+    } catch (err) {
 
-  console.error("Admin email failed:", err);
+      console.error("Admin email failed:", err);
 
-}
+    }
 
 
     res.json({

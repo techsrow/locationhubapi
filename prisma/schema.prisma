@@ -21,6 +21,7 @@ model BrideGallery {
   displayorder Int      @default(0)
   createdAt    DateTime @default(now())
 }
+
 model GroomGallery {
   id           String   @id @default(uuid())
   imageUrl     String
@@ -36,36 +37,35 @@ model HomeSlider {
   createdAt    DateTime @default(now())
 }
 
-
 enum Role {
   ADMIN
 }
 
 model Set {
-  id          String        @id @default(uuid())
-  title       String
-  mainImage   String
-  content     String        @db.Text   // raw HTML from CKEditor
-  createdAt   DateTime      @default(now())
-  pageUrl     String        @unique        // ✅ ADD THIS
-  gallery     SetGallery[]
+  id        String       @id @default(uuid())
+  title     String
+  mainImage String
+  content   String       @db.Text // raw HTML from CKEditor
+  createdAt DateTime     @default(now())
+  pageUrl   String       @unique // ✅ ADD THIS
+  gallery   SetGallery[]
 }
 
 model SetGallery {
-  id          String   @id @default(uuid())
-  imageUrl    String
+  id           String   @id @default(uuid())
+  imageUrl     String
   displayorder Int
-  createdAt   DateTime @default(now())
+  createdAt    DateTime @default(now())
 
-  set         Set      @relation(fields: [setId], references: [id], onDelete: Cascade)
-  setId       String
+  set   Set    @relation(fields: [setId], references: [id], onDelete: Cascade)
+  setId String
 }
 
 model AddOnService {
   id           String   @id @default(uuid())
   title        String
   imageUrl     String
-  pageUrl     String        @unique  
+  pageUrl      String   @unique
   displayorder Int
   createdAt    DateTime @default(now())
 }
@@ -79,23 +79,23 @@ model Testimonial {
 }
 
 model Setup {
-  id           String   @id @default(uuid())
+  id           String         @id @default(uuid())
   title        String
-  slug         String   @unique
+  slug         String         @unique
   mainImage    String
   content      String
   displayOrder Int
-  createdAt    DateTime @default(now())
-pageUrl     String        @unique        // ✅ ADD THIS
+  createdAt    DateTime       @default(now())
+  pageUrl      String         @unique // ✅ ADD THIS
   gallery      SetupGallery[]
 }
 
 model SetupGallery {
-  id        String   @id @default(uuid())
-  imageUrl  String
-  setupId   String   // ✅ lower-case s
-   displayOrder Int      @default(0)
-  setup     Setup    @relation(fields: [setupId], references: [id], onDelete: Cascade)
+  id           String @id @default(uuid())
+  imageUrl     String
+  setupId      String // ✅ lower-case s
+  displayOrder Int    @default(0)
+  setup        Setup  @relation(fields: [setupId], references: [id], onDelete: Cascade)
 }
 
 model Props {
@@ -115,14 +115,15 @@ model MakeupArtist {
 }
 
 model Product {
-  id        String   @id @default(uuid())
-  name      String
-  slug      String   @unique
-  price     Decimal
+  id            String  @id @default(uuid())
+  name          String
+  slug          String  @unique
+  price         Decimal
   bookingAmount Decimal
 
   slots     Slot[]
   bookings  Booking[]
+  slotLocks SlotLock[] // ✅ ADD THIS
 
   createdAt DateTime @default(now())
 }
@@ -136,27 +137,28 @@ enum BookingStatus {
 }
 
 model Slot {
-  id        String   @id @default(uuid())
+  id String @id @default(uuid())
 
   productId String
-  product   Product  @relation(fields: [productId], references: [id])
+  product   Product @relation(fields: [productId], references: [id])
 
   label     String
   startTime String
   endTime   String
 
   bookings  BookingSlot[]
+  slotLocks SlotLock[] // ✅ ADD THIS
 
   createdAt DateTime @default(now())
 }
 
 model Booking {
-  id        String   @id @default(uuid())
+  id String @id @default(uuid())
 
-  bookingId String   @unique
+  bookingId String @unique
 
   productId String
-  product   Product  @relation(fields: [productId], references: [id])
+  product   Product @relation(fields: [productId], references: [id])
 
   bookingDate DateTime
 
@@ -199,7 +201,25 @@ model BookingSlot {
   booking   Booking @relation(fields: [bookingId], references: [id])
 
   slotId String
-  slot   Slot @relation(fields: [slotId], references: [id])
+  slot   Slot   @relation(fields: [slotId], references: [id])
 
   @@unique([bookingId, slotId])
+}
+
+model SlotLock {
+  id String @id @default(uuid())
+
+  productId String
+  product   Product @relation(fields: [productId], references: [id])
+
+  slotId String
+  slot   Slot   @relation(fields: [slotId], references: [id])
+
+  date DateTime
+
+  locked Boolean @default(true)
+
+  createdAt DateTime @default(now())
+
+  @@unique([productId, slotId, date])
 }
